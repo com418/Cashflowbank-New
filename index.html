@@ -262,6 +262,16 @@
       <main class="main" id="mainContent"></main>
     </div>
   </div>
+  <div id="approvalScreen" class="hidden" style="min-height:100vh;background:#f7f7fa;padding:24px;display:grid;place-items:center">
+    <section class="card" style="width:min(520px,100%);padding:32px;text-align:center">
+      <div class="stat-icon" style="margin:0 auto 18px;width:58px;height:58px">✓</div>
+      <p class="auth-kicker">CASHFLOWBANK ACCOUNT REVIEW</p>
+      <h1 style="font-size:28px;margin:10px 0">Your account is awaiting approval</h1>
+      <p class="muted" style="line-height:1.7">Thanks for registering. An administrator must review and approve your account before you can access the customer dashboard. You will not be able to use banking features while your application is pending.</p>
+      <div id="approvalStatusText" class="notice"><strong>Status: Pending review</strong>Please wait for the administrator to approve your application.</div>
+      <button class="btn btn-primary btn-block" id="pendingSignOut" type="button">Sign out</button>
+    </section>
+  </div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
   <script type="module">
@@ -272,7 +282,7 @@
       updateProfile
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import {
-      getFirestore, doc, getDoc, setDoc, serverTimestamp
+      getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, getDocs, query, where, updateDoc, deleteDoc
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
     // Public Firebase web configuration. Never put payment-provider secret keys here.
@@ -297,11 +307,13 @@
       landingScreen.classList.remove("hidden");
       authScreen.classList.add("hidden");
       $("appScreen").classList.add("hidden");
+      $("approvalScreen").classList.add("hidden");
       window.scrollTo({top:0,behavior:"smooth"});
     }
     function showAuth(mode = "signin") {
       landingScreen.classList.add("hidden");
       $("appScreen").classList.add("hidden");
+      $("approvalScreen").classList.add("hidden");
       authScreen.classList.remove("hidden");
       setAuthMode(mode);
       window.scrollTo({top:0,behavior:"smooth"});
@@ -366,6 +378,15 @@
       try { await sendPasswordResetEmail(auth, email); showToast("If the email is registered, a password-reset message has been sent.", "success"); }
       catch (e) { showToast(firebaseError(e), "error"); }
     });
+    // Prototype-only internal account ID. Production account-number issuance must be
+    // performed by a trusted Cloud Function with a uniqueness constraint.
+    function generateInternalAccountNumber() {
+      const bytes = new Uint32Array(1);
+      crypto.getRandomValues(bytes);
+      const n = 1000000000 + (bytes[0] % 9000000000);
+      return String(n);
+    }
+
     function firebaseError(e) {
       const map = {
         "auth/invalid-email":"Enter a valid email address.",
@@ -409,16 +430,22 @@
               accountType,
               country,
               gender,
-              accountNumber: "",
+              accountNumber: generateInternalAccountNumber(),
+              accountNumberType: "internal-demo-id",
+              status: "pending",
               createdAt: serverTimestamp()
             });
+            await signOut(auth);
+            showAuth("signin");
+            $("authMessage").textContent = "Registration received. You must wait for administrator approval before signing in.";
+            showToast("Registration submitted for administrator approval.", "success");
           } catch (profileError) {
             console.error("Profile creation failed:", profileError);
-            showToast("Your sign-in was created, but the profile record could not be saved. Check Firestore rules.", "error");
+            showToast("Your login was created, but your account profile and number were not saved. Contact support before continuing.", "error");
           }
         } else {
           // Do not perform an unsafe client-side account-number-to-email lookup.
-          throw new Error("Account-number sign-in is designed here, but needs a secure Firebase Cloud Function to map account numbers to accounts. It is not enabled yet.");
+          throw new Error("Account-number login is not enabled until a secure Firebase Cloud Function maps account numbers to Firebase users. Please contact the administrator while this is configured.");
         }
       } catch (e) {
         $("authMessage").textContent = firebaseError(e);
@@ -426,9 +453,9 @@
         button.disabled = false;
       }
     });
-    $("signOutBtn").addEventListener("click", async () => {
-      try { await signOut(auth); } catch (e) { showToast(firebaseError(e), "error"); }
-    });
+    async function safeSignOut() { try { await signOut(auth); } catch (e) { showToast(firebaseError(e), "error"); } }
+    $("signOutBtn").addEventListener("click", safeSignOut);
+    $("pendingSignOut").addEventListener("click", safeSignOut);
 
     function navButton(page, label) {
       return `<button class="btn btn-light" data-go="${page}">${label}</button>`;
@@ -446,13 +473,13 @@
       if (!currentUser) return;
       const name = profileData?.displayName || currentUser.displayName || currentUser.email?.split("@")[0] || "Customer";
       const firstName = name.split(" ")[0];
-      const accountDate = profileData?.createdAt ? dateLabel(profileData.createdAt) : "Not available";
+      const accountDate = profileData?.adminCreatedAt || (profileData?.createdAt ? dateLabel(profileData.createdAt) : "Not available");
       let html = "";
       if (currentPage === "dashboard") {
         html = `${header("Welcome back, ${safeText(firstName)} 👋","Here’s your account overview.",'<span class="status-pill"><span class="dot red"></span> Account services setup pending</span>')}
           <section class="hero"><div class="hero-copy"><h2>Your banking overview, at a glance.</h2><p>Your account is signed in. Live balances, credit scoring and money movement will appear only after verified services are securely configured.</p></div><button class="btn" data-go="account">View account details →</button></section>
           <div class="grid stats">
-            ${statCard("Available balance","Not connected","No verified balance source",icon.wallet)}
+            ${statCard("Demo balance",profileData?.adminDemoBalance != null ? "$" + Number(profileData.adminDemoBalance).toFixed(2) : "Not connected","Demo only — not real funds",icon.wallet)}
             ${statCard("Credit score","Unavailable","No credit bureau connected",icon.chart)}
             ${statCard("Account status","Profile only","Provider integration not active",icon.shield)}
           </div>
@@ -472,10 +499,12 @@
             <div class="field"><label>Account holder</label><input readonly value="${safeText(name)}"></div>
             <div class="field"><label>Email address</label><input readonly value="${safeText(currentUser.email || "Not available")}"></div>
             <div class="field"><label>Profile created</label><input readonly value="${safeText(accountDate)}"></div>
-            <div class="field"><label>Account number</label><input readonly value="Not issued"></div>
-            <div class="field"><label>Available balance</label><input readonly value="Not connected to a verified ledger"></div>
+            <div class="field"><label>Account number</label><input readonly value="${safeText(profileData?.accountNumber || "Not issued")}"></div>
+            <div class="field"><label>Account type</label><input readonly value="${safeText(profileData?.accountType || "Not available")}"></div>
+            <div class="field"><label>Country</label><input readonly value="${safeText(profileData?.country || "Not available")}"></div>
+            <div class="field"><label>Demo balance (not real funds)</label><input readonly value="${profileData?.adminDemoBalance != null ? safeText("$" + Number(profileData.adminDemoBalance).toFixed(2)) : "Not connected to a verified ledger"}"></div><div class="field"><label>Daily limit (stored setting)</label><input readonly value="${profileData?.dailyLimit != null ? safeText("$" + Number(profileData.dailyLimit).toFixed(2)) : "Not set"}"></div>
             <div class="field"><label>Banking provider</label><input readonly value="Not configured"></div>
-          </div><div class="notice"><strong>Account details are limited</strong>A Firebase user profile is not a bank account. Account numbers, balances and transaction records must come from an authorized banking/financial partner.</div></div>`;
+          </div><div class="notice"><strong>Important account status</strong>The displayed number is an internal Cashflowbank demo identifier, not a bank-issued account number. Real account issuance, balances and transfers require a secure backend and an authorized banking or payment partner.</div></div>`;
       } else if (currentPage === "transfer") {
         html = `${header("Transfer","Transfer requests are not active until the secure backend and licensed payment partner are configured.")}
           <div class="card"><h2 style="margin:0 0 8px;font-size:18px">Bank transfer</h2><p class="muted" style="font-size:13px;line-height:1.6">This screen is prepared for integration, but it will not send money or pretend a transfer succeeded.</p>
@@ -560,21 +589,36 @@
         landingScreen.classList.remove("hidden");
         $("authScreen").classList.add("hidden");
         $("appScreen").classList.add("hidden");
+        $("approvalScreen").classList.add("hidden");
         return;
       }
+      // Hide every customer surface while approval status is checked.
       landingScreen.classList.add("hidden");
       $("authScreen").classList.add("hidden");
-      $("appScreen").classList.remove("hidden");
-      $("topUserEmail").textContent = user.email || "";
-      $("topAvatar").textContent = (user.displayName || user.email || "C").charAt(0).toUpperCase();
+      $("appScreen").classList.add("hidden");
+      $("approvalScreen").classList.remove("hidden");
+      $("approvalStatusText").innerHTML = "<strong>Checking account status…</strong>Please wait while we verify your application.";
       try {
+        const token = await user.getIdTokenResult(true);
         const snap = await getDoc(doc(db, "users", user.uid));
         profileData = snap.exists() ? snap.data() : null;
+        if (profileData?.status === "approved") {
+          $("approvalScreen").classList.add("hidden");
+          $("appScreen").classList.remove("hidden");
+        } else {
+          $("approvalScreen").classList.remove("hidden");
+          $("approvalStatusText").innerHTML = "<strong>Status: Pending review</strong>Your account has not been approved yet. Please wait for an administrator to review it.";
+          return;
+        }
       } catch (e) {
-        console.error("Could not load profile:", e);
+        console.error("Could not verify account approval:", e);
         profileData = null;
-        showToast("Signed in, but profile data could not be loaded. Check Firestore rules.", "error");
+        $("approvalScreen").classList.remove("hidden");
+        $("approvalStatusText").innerHTML = "<strong>We could not verify your account status</strong>Access is blocked until the account status can be checked. Please try again later or contact support.";
+        return;
       }
+      $("topUserEmail").textContent = user.email || "";
+      $("topAvatar").textContent = (user.displayName || user.email || "C").charAt(0).toUpperCase();
       render();
     });
   </script>
