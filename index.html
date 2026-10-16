@@ -85,6 +85,12 @@
     @media(prefers-reduced-motion:reduce){.float-chip,.float-card-mini{animation:none!important;transition:none!important}}
     @media(max-width:900px){.hero-people-photo{inset:48px 0 50px 5%}.dashboard-preview{margin-left:10%;max-width:320px}.chip-status{left:-2px;top:78px}.float-card-mini{right:-2px;bottom:24px;width:160px;height:98px}}
     @media(max-width:650px){.hero-people-photo{inset:35px 3% 35px 4%;border-radius:27px}.dashboard-preview{margin-left:7%;width:min(330px,88%)}.chip-status{left:0;top:12px}.float-card-mini{right:0;bottom:17px;width:142px;height:88px;padding:12px;border-radius:13px}.mini-card-brand{font-size:9px}.mini-card-dots{font-size:9px}.mini-card-foot{font-size:6px}.about-people-photo{height:145px;margin-bottom:18px}}
+
+    .auth-form-modern{width:min(560px,100%);background:#fff;border:1px solid #f0e4e6;border-radius:24px;padding:clamp(23px,3.5vw,38px);box-shadow:0 22px 70px #6f15200d}
+    .auth-form-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}.auth-kicker{font-size:9px;letter-spacing:1.7px;font-weight:900;color:var(--red)}.auth-lock{display:grid;place-items:center;width:35px;height:35px;border-radius:12px;background:#fff0f2;color:var(--red)}
+    .signup-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 13px}.signup-fields .field{min-width:0}.signup-fields .auth-inline-note{grid-column:1/-1;background:#fff7f8;border:1px solid #f5dfe3;border-radius:12px;padding:11px 12px;font-size:10px;line-height:1.6;color:#7d5960;margin:0 0 15px}
+    .auth-form-modern .field{margin-bottom:13px}.auth-form-modern .field label{font-size:12px;color:#363741}.auth-form-modern .field input,.auth-form-modern .field select{min-height:46px;border-radius:12px;padding:12px 13px;font-size:13px}.auth-form-modern .auth-submit{min-height:48px;box-shadow:0 9px 20px #c7193224}.auth-form-modern #authSub{margin-bottom:21px}.auth-form-modern .auth-switch{padding-top:4px}
+    @media(max-width:700px){.auth-form-modern{border:0;box-shadow:none;padding:0;width:100%;max-width:500px}.signup-fields{grid-template-columns:1fr}.signup-fields .auth-inline-note{grid-column:auto}.auth-form-wrap{padding:27px 20px 38px}.auth-side{padding:24px 22px 29px}}
   </style>
 </head>
 <body>
@@ -208,17 +214,30 @@
       <div class="small" style="color:#ffe3e7;position:relative;z-index:1">Secure sign-in · Firebase Authentication</div>
     </section>
     <section class="auth-form-wrap">
-      <form class="auth-form" id="authForm">
+      <form class="auth-form auth-form-modern" id="authForm">
+        <div class="auth-form-top"><span class="auth-kicker">CASHFLOWBANK ACCOUNT</span><span class="auth-lock" aria-hidden="true">✦</span></div>
         <h2 id="authTitle">Welcome back</h2><p id="authSub">Sign in to access your Cashflowbank account.</p>
-        <div id="signupNameWrap" class="field hidden"><label for="signupName">Full name</label><input id="signupName" autocomplete="name" placeholder="Your full name" /></div>
-        <div class="field"><label for="email">Email address</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com" required /></div>
-        <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" minlength="6" placeholder="At least 6 characters" required /></div>
+        <div id="signupFields" class="signup-fields hidden">
+          <div class="field"><label for="signupName">Full name</label><input id="signupName" autocomplete="name" placeholder="Enter your full name" /></div>
+          <div class="field"><label for="signupEmail">Email address</label><input id="signupEmail" type="email" autocomplete="email" placeholder="you@example.com" /></div>
+          <div class="field"><label for="accountType">Account type</label><select id="accountType"><option value="" disabled selected>Select account type</option><option>Personal Savings</option><option>Current Account</option><option>Business Account</option><option>Student Account</option></select></div>
+          <div class="field"><label for="country">Country</label><select id="country"><option value="" disabled selected>Select your country</option><option>Australia</option><option>Austria</option><option>Belgium</option><option>Brazil</option><option>Canada</option><option>China</option><option>Denmark</option><option>Finland</option><option>France</option><option>Germany</option><option>Greece</option><option>India</option><option>Indonesia</option><option>Ireland</option><option>Israel</option><option>Italy</option><option>Japan</option><option>Malaysia</option><option>Mexico</option><option>Netherlands</option><option>New Zealand</option><option>Norway</option><option>Pakistan</option><option>Philippines</option><option>Poland</option><option>Portugal</option><option>Saudi Arabia</option><option>Singapore</option><option>South Korea</option><option>Spain</option><option>Sweden</option><option>Switzerland</option><option>Thailand</option><option>Turkey</option><option>United Arab Emirates</option><option>United Kingdom</option><option>United States</option><option>Vietnam</option></select></div>
+          <div class="field"><label for="signupPassword">Password</label><input id="signupPassword" type="password" autocomplete="new-password" minlength="6" placeholder="At least 6 characters" /></div>
+          <div class="field"><label for="confirmPassword">Confirm password</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Re-enter your password" /></div>
+          <div class="field"><label for="signupPin">PIN</label><input id="signupPin" type="password" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" placeholder="4–6 digit PIN" autocomplete="off" /></div>
+          <div class="field"><label for="gender">Gender</label><select id="gender"><option value="" disabled selected>Select gender</option><option>Male</option><option>Female</option><option>Prefer not to say</option></select></div>
+          <p class="auth-inline-note">Choose a strong password. Your PIN is not saved by this demo until secure server-side PIN handling is configured.</p>
+        </div>
+        <div id="signinFields">
+          <div class="field"><label for="accountNumber">Account number</label><input id="accountNumber" inputmode="numeric" autocomplete="username" placeholder="Enter your account number" /></div>
+          <div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" /></div>
+        </div>
         <div id="authExtra" class="small muted" style="text-align:right;margin:-3px 0 18px"><button class="linkbtn" type="button" id="forgotBtn">Forgot password?</button></div>
-        <button class="btn btn-primary btn-block" id="authSubmit" type="submit">Sign in securely</button>
-        <div id="authMessage" class="inline-status" role="status"></div>
+        <button class="btn btn-primary btn-block auth-submit" id="authSubmit" type="submit">Sign in securely</button>
+        <div id="authMessage" class="inline-status" role="status" aria-live="polite"></div>
         <div style="text-align:center;margin-top:12px"><button class="linkbtn" type="button" id="backLanding">← Back to home</button></div>
         <div class="auth-switch"><span id="switchText">New to Cashflowbank?</span> <button class="linkbtn" type="button" id="switchAuth">Create account</button></div>
-        <div class="security-foot">Never share your password, PIN, or verification codes. This website does not currently move money or provide a real credit score.</div>
+        <div class="security-foot">Never share your password, PIN, or verification codes. Account-number sign-in requires secure server-side account lookup before it can be enabled.</div>
       </form>
     </section>
   </div>
@@ -327,20 +346,23 @@
       authMode = mode;
       const signup = mode === "signup";
       $("authTitle").textContent = signup ? "Create your account" : "Welcome back";
-      $("authSub").textContent = signup ? "Create a secure sign-in for your Cashflowbank profile." : "Sign in to access your Cashflowbank account.";
-      $("signupNameWrap").classList.toggle("hidden", !signup);
+      $("authSub").textContent = signup ? "A few details to get your Cashflowbank profile started." : "Sign in using your account number and password.";
+      $("signupFields").classList.toggle("hidden", !signup);
+      $("signinFields").classList.toggle("hidden", signup);
       $("authExtra").classList.toggle("hidden", signup);
       $("authSubmit").textContent = signup ? "Create account securely" : "Sign in securely";
       $("switchText").textContent = signup ? "Already have an account?" : "New to Cashflowbank?";
       $("switchAuth").textContent = signup ? "Sign in" : "Create account";
-      $("password").autocomplete = signup ? "new-password" : "current-password";
+      ["signupName","signupEmail","accountType","country","signupPassword","confirmPassword","signupPin","gender"].forEach(id => { $(id).required = signup; });
+      $("accountNumber").required = !signup;
+      $("loginPassword").required = !signup;
       $("authMessage").textContent = "";
     }
     $("switchAuth").addEventListener("click", () => setAuthMode(authMode === "signin" ? "signup" : "signin"));
     $("backLanding").addEventListener("click", showLanding);
     $("forgotBtn").addEventListener("click", async () => {
-      const email = $("email").value.trim();
-      if (!email) return showToast("Enter your email address first.");
+      const email = authMode === "signup" ? $("signupEmail").value.trim() : "";
+      if (!email) return showToast("Password reset by account number needs secure account lookup. Contact support for help.");
       try { await sendPasswordResetEmail(auth, email); showToast("If the email is registered, a password-reset message has been sent.", "success"); }
       catch (e) { showToast(firebaseError(e), "error"); }
     });
@@ -360,22 +382,34 @@
     }
     $("authForm").addEventListener("submit", async (event) => {
       event.preventDefault();
-      const email = $("email").value.trim();
-      const password = $("password").value;
-      const name = $("signupName").value.trim();
       const button = $("authSubmit");
       button.disabled = true;
       $("authMessage").textContent = "Please wait…";
       try {
         if (authMode === "signup") {
+          const name = $("signupName").value.trim();
+          const email = $("signupEmail").value.trim();
+          const password = $("signupPassword").value;
+          const confirmPassword = $("confirmPassword").value;
+          const pin = $("signupPin").value.trim();
+          const accountType = $("accountType").value;
+          const country = $("country").value;
+          const gender = $("gender").value;
           if (!name) throw new Error("Enter your full name.");
+          if (password !== confirmPassword) throw new Error("Your passwords do not match.");
+          if (!/^[0-9]{4,6}$/.test(pin)) throw new Error("PIN must be 4 to 6 digits.");
+          if (!accountType || !country || !gender) throw new Error("Please complete all account details.");
           const cred = await createUserWithEmailAndPassword(auth, email, password);
           await updateProfile(cred.user, { displayName: name });
-          // Profile contains only basic customer details. It is not a bank ledger.
+          // Never store a plain-text PIN in Firestore. PIN persistence requires a secure backend.
           try {
             await setDoc(doc(db, "users", cred.user.uid), {
               displayName: name,
               email: cred.user.email,
+              accountType,
+              country,
+              gender,
+              accountNumber: "",
               createdAt: serverTimestamp()
             });
           } catch (profileError) {
@@ -383,7 +417,8 @@
             showToast("Your sign-in was created, but the profile record could not be saved. Check Firestore rules.", "error");
           }
         } else {
-          await signInWithEmailAndPassword(auth, email, password);
+          // Do not perform an unsafe client-side account-number-to-email lookup.
+          throw new Error("Account-number sign-in is designed here, but needs a secure Firebase Cloud Function to map account numbers to accounts. It is not enabled yet.");
         }
       } catch (e) {
         $("authMessage").textContent = firebaseError(e);
